@@ -22,7 +22,8 @@ jobs:
           chmod 600 oci_key.key
 
       - name: Create env
-        run: echo "${{ secrets.ENV_FILE}}" > .env
+        run: |
+          echo "${{ secrets.ENV_FILE}}" > .env
 
       - name: Transfer application, configuration & Docker Compose file to Server
         run: |
