@@ -1,0 +1,39 @@
+name: DiscordBot with LLM Deploy
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      TZ: Asia/Seoul
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create SSH Key
+        run: |
+          echo "${{ secrets.OCI_PRIVATE_KEY }}" > oci_key.key
+          chmod 600 oci_key.key
+
+      - name: Create env
+        run: |
+          echo "${{ secrets.ENV_FILE}}" > .env
+
+      - name: Transfer application, configuration & Docker Compose file to Server
+        run: |
+          scp -i oci_key.key -o StrictHostKeyChecking=no -r . ${{ secrets.OCI_USER }}@${{ secrets.OCI_HOST }}:/home/ubuntu/project/discord_bot/
+
+      - name: SSH into OCI and Restart Container
+        run: |
+          ssh -i oci_key.key -o StrictHostKeyChecking=no ${{ secrets.OCI_USER }}@${{ secrets.OCI_HOST }} << 'EOF'
+            cd /home/ubuntu/project/discord_bot/
+            docker compose down || true
+            docker compose build --no-cache || true
+            docker compose up -d
+          EOF
